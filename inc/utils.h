@@ -13,6 +13,7 @@ namespace comnlibs
 	public:
         timer(int millsec, bool persist = false);
 		void start(timercb cb, void *arg);
+        void start2(timercb cb, void *arg);
 
     public:
         static void timeout_cb(evutil_socket_t fd, short event, void *arg);

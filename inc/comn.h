@@ -28,3 +28,6 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
+
+
+#define hprintf(fmt, ...) printf("["MODULE":%04d] " fmt, __LINE__, __VA_ARGS__)

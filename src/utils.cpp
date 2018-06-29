@@ -1,6 +1,7 @@
+#define MODULE "UTILS"
+
 #include "utils.h"
 
-#define hprintf(fmt, args...) printf("[%s@%d]"fmt,__FILE__,__LINE__,##args)
 namespace comnlibs
 {
     static bool global_inited = false;
@@ -49,7 +50,8 @@ namespace comnlibs
 	{
         if (!global_inited)
         {
-            h
+            hprintf("error: need invoke GlobalInit() at first.");
+            return;
         }
 		_ext_callback = cb;
 		_ext_arg = arg;
@@ -62,4 +64,43 @@ namespace comnlibs
 		evutil_gettimeofday(&lasttime, NULL);
 		event_base_dispatch(_base);
 	}
+
+    void timer::start2(timercb cb, void *arg)
+    {
+        _ext_callback = cb;
+        _ext_arg = arg;
+        struct timeval tv = _tv;
+        SOCKET sockClient = socket(AF_INET, SOCK_STREAM, 0);
+        evutil_gettimeofday(&lasttime, NULL);
+        do
+        {
+            fd_set rset;
+            FD_ZERO(&rset);
+            FD_SET(sockClient, &rset);
+            
+            int ret = select(1,&rset,0,0,&tv);
+            hprintf("ret:%d tv:%d,%d %d,%d\n",ret, _tv.tv_sec, _tv.tv_usec, tv.tv_sec, tv.tv_usec);
+            if (ret == -1 && errno == EINTR)
+                continue;
+            if (ret == -1)
+            {
+                hprintf("%s\n", strerror(errno));
+                break;
+            }
+            struct timeval newtime, difference;
+            double elapsed;
+
+            evutil_gettimeofday(&newtime, NULL);
+            evutil_timersub(&newtime, &lasttime, &difference);
+            elapsed = difference.tv_sec + (difference.tv_usec / 1.0e6);
+
+            printf("timeout_cb called at %d: %.3f seconds elapsed.\n",
+                (int)newtime.tv_sec, elapsed);
+            lasttime = newtime;
+            if (_ext_callback)
+                _ext_callback(_ext_arg);
+            tv = _tv;
+        } while (_persist);
+        closesocket(sockClient);
+    }
 }
